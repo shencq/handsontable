@@ -190,7 +190,7 @@ class Overlays {
     listenersToRegister.push([document.documentElement, 'keydown', (event) => this.onKeyDown(event)]);
     listenersToRegister.push([document.documentElement, 'keyup', () => this.onKeyUp()]);
     listenersToRegister.push([document, 'visibilitychange', () => this.onKeyUp()]);
-    listenersToRegister.push([topOverlayScrollable, 'scroll', (event) => this.onTableScroll(event)]);
+    listenersToRegister.push([topOverlayScrollable, 'scroll', (event) => this.onTableScroll(event), { passive: true }]);
 
     if (topOverlayScrollable !== leftOverlayScrollable) {
       listenersToRegister.push([leftOverlayScrollable, 'scroll', (event) => this.onTableScroll(event)]);
@@ -259,7 +259,7 @@ class Overlays {
 
     while (listenersToRegister.length) {
       let listener = listenersToRegister.pop();
-      this.eventManager.addEventListener(listener[0], listener[1], listener[2]);
+      this.eventManager.addEventListener(listener[0], listener[1], listener[2], listener[3]);
 
       this.registeredListeners.push(listener);
     }
@@ -297,7 +297,7 @@ class Overlays {
       }
     }
 
-    this.syncScrollPositions(event);
+    this.syncScrollPositions();
   }
 
   /**
@@ -368,6 +368,7 @@ class Overlays {
     if (distance === 0) {
       return 0;
     }
+
     this.scrollableElement.scrollTop += distance;
   }
 
@@ -375,6 +376,7 @@ class Overlays {
     if (distance === 0) {
       return 0;
     }
+
     this.scrollableElement.scrollLeft += distance;
   }
 
@@ -382,31 +384,38 @@ class Overlays {
    * Synchronize scroll position between master table and overlay table.
    *
    * @private
-   * @param {Event|Object} event
    */
-  syncScrollPositions(event) {
+  syncScrollPositions() {
     if (this.destroyed) {
       return;
     }
 
     let topHolder = this.topOverlay.clone.wtTable.holder;
     let leftHolder = this.leftOverlay.clone.wtTable.holder;
+    let scrollLeft;
+    let scrollTop;
 
-    const [scrollLeft, scrollTop] = [this.scrollableElement.scrollLeft, this.scrollableElement.scrollTop];
+    if (window === this.scrollableElement) {
+      scrollLeft = this.scrollableElement.scrollX;
+      scrollTop = this.scrollableElement.scrollY;
+
+    } else {
+      ({scrollLeft, scrollTop} = this.scrollableElement);
+    }
 
     this.horizontalScrolling = topHolder.scrollLeft !== scrollLeft;
     this.verticalScrolling = leftHolder.scrollTop !== scrollTop;
 
     if (this.horizontalScrolling) {
       topHolder.scrollLeft = scrollLeft;
-    }
-
-    if (this.verticalScrolling) {
-      leftHolder.scrollTop = scrollTop;
 
       if (this.bottomOverlay.needFullRender) {
         this.bottomOverlay.clone.wtTable.holder.scrollLeft = scrollLeft;
       }
+    }
+
+    if (this.verticalScrolling) {
+      leftHolder.scrollTop = scrollTop;
     }
 
     this.refreshAll();

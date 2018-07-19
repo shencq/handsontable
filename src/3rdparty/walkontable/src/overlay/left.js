@@ -7,7 +7,6 @@ import {
   outerWidth,
   innerHeight,
   removeClass,
-  setOverlayPosition,
   resetCssTransform
 } from './../../../../helpers/dom/element';
 import Overlay from './_base';
@@ -22,6 +21,8 @@ class LeftOverlay extends Overlay {
   constructor(wotInstance) {
     super(wotInstance);
     this.clone = this.makeClone(Overlay.CLONE_LEFT);
+    this.fixed = false;
+    this.absolute = true;
   }
 
   /**
@@ -60,10 +61,26 @@ class LeftOverlay extends Overlay {
       } else {
         finalLeft = 0;
       }
-      headerPosition = finalLeft;
-      finalLeft += 'px';
 
-      setOverlayPosition(overlayRoot, finalLeft, finalTop);
+      if (finalLeft > 0 && !this.fixed) {
+        overlayRoot.style.position = 'fixed';
+        overlayRoot.style.top = '';
+        overlayRoot.style.height = '100%';
+        this.fixed = true;
+        this.absolute = false;
+
+      } else if (finalLeft <= 0 && !this.absolute) {
+        overlayRoot.style.position = 'absolute';
+        overlayRoot.style.top = 0;
+        overlayRoot.style.height = 'auto';
+        this.fixed = false;
+        this.absolute = true;
+      }
+
+      headerPosition = finalLeft;
+      // finalLeft += 'px';
+
+      // setOverlayPosition(overlayRoot, finalLeft, finalTop);
 
     } else {
       headerPosition = this.getScrollPosition();

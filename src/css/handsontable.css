@@ -551,7 +551,8 @@ CheckboxRenderer
   background: #eee;
 }
 
-.ht_clone_top {
+.ht_clone_top,
+.ht_clone_bottom {
   z-index: 101;
 }
 
@@ -709,14 +710,12 @@ thead .htCollapseButton:after {
   display: none;
 }
 
-.ht_master,
-.ht_clone_left,
-.ht_clone_top,
-.ht_clone_bottom {
+.handsontable .ht_master,
+.handsontable [class*="ht_clone_"] {
   overflow: hidden;
 }
 
-.ht_master .wtHolder {
+.handsontable .ht_master .wtHolder {
   overflow: auto;
 }
 

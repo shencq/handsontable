@@ -35,9 +35,10 @@ class EventManager {
    * @param {Element} element Target element.
    * @param {String} eventName Event name.
    * @param {Function} callback Function which will be called after event occur.
+   * @param {Boolean|Object} options Listener options or `useCapture`.
    * @returns {Function} Returns function which you can easily call to remove that event
    */
-  addEventListener(element, eventName, callback) {
+  addEventListener(element, eventName, callback, options = false) {
     let context = this.context;
 
     function callbackProxy(event) {
@@ -50,10 +51,11 @@ class EventManager {
       event: eventName,
       callback,
       callbackProxy,
+      options
     });
 
     if (window.addEventListener) {
-      element.addEventListener(eventName, callbackProxy, false);
+      element.addEventListener(eventName, callbackProxy, options);
     } else {
       element.attachEvent(`on${eventName}`, callbackProxy);
     }
@@ -86,7 +88,7 @@ class EventManager {
         this.context.eventListeners.splice(len, 1);
 
         if (tmpEvent.element.removeEventListener) {
-          tmpEvent.element.removeEventListener(tmpEvent.event, tmpEvent.callbackProxy, false);
+          tmpEvent.element.removeEventListener(tmpEvent.event, tmpEvent.callbackProxy, tmpEvent.options);
         } else {
           tmpEvent.element.detachEvent(`on${tmpEvent.event}`, tmpEvent.callbackProxy);
         }

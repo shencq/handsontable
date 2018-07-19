@@ -211,7 +211,7 @@ class Overlay {
     clone.appendChild(clonedTable);
 
     this.type = direction;
-    this.wot.wtTable.wtRootElement.parentNode.appendChild(clone);
+    this.wot.wtTable.wtRootElement.parentNode.insertBefore(clone, this.wot.wtTable.wtRootElement);
 
     let preventOverflow = this.wot.getSetting('preventOverflow');
 

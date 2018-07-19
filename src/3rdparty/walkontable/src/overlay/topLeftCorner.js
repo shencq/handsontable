@@ -39,6 +39,7 @@ class TopLeftCornerOverlay extends Overlay {
       // removed from DOM
       return;
     }
+
     let overlayRoot = this.clone.wtTable.holder.parentNode;
     let tableHeight = outerHeight(this.clone.wtTable.TABLE);
     let tableWidth = outerWidth(this.clone.wtTable.TABLE);
@@ -64,7 +65,8 @@ class TopLeftCornerOverlay extends Overlay {
           finalTop = `${-top}px`;
         }
       }
-      setOverlayPosition(overlayRoot, finalLeft, finalTop);
+
+      // setOverlayPosition(overlayRoot, finalLeft, finalTop);
     } else {
       resetCssTransform(overlayRoot);
     }

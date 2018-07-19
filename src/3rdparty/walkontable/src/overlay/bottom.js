@@ -5,25 +5,38 @@ import {
   getWindowScrollLeft,
   hasClass,
   outerHeight,
-  innerWidth,
+  innerHeight,
   removeClass,
+  setOverlayPosition,
   resetCssTransform
 } from './../../../../helpers/dom/element';
-import {arrayEach} from './../../../../helpers/array';
 import Overlay from './_base';
 
 /**
- * @class TopOverlay
+ * @class BottomOverlay
  */
-class TopOverlay extends Overlay {
+class BottomOverlay extends Overlay {
   /**
    * @param {Walkontable} wotInstance
    */
   constructor(wotInstance) {
     super(wotInstance);
-    this.clone = this.makeClone(Overlay.CLONE_TOP);
-    this.fixed = false;
-    this.absolute = true;
+    this.clone = this.makeClone(Overlay.CLONE_BOTTOM);
+  }
+
+  /**
+   *
+   */
+  repositionOverlay() {
+    let scrollbarWidth = getScrollbarWidth();
+    let cloneRoot = this.clone.wtTable.holder.parentNode;
+
+    if (this.wot.wtTable.holder.clientHeight === this.wot.wtTable.holder.offsetHeight) {
+      scrollbarWidth = 0;
+    }
+
+    cloneRoot.style.top = '';
+    cloneRoot.style.bottom = scrollbarWidth + 'px';
   }
 
   /**
@@ -32,7 +45,8 @@ class TopOverlay extends Overlay {
    * @returns {Boolean}
    */
   shouldBeRendered() {
-    return !!(this.wot.getSetting('fixedRowsTop') || this.wot.getSetting('columnHeaders').length);
+    /* eslint-disable no-unneeded-ternary */
+    return this.wot.getSetting('fixedRowsBottom') ? true : false;
   }
 
   /**
@@ -43,56 +57,39 @@ class TopOverlay extends Overlay {
       // removed from DOM
       return;
     }
+
     let overlayRoot = this.clone.wtTable.holder.parentNode;
     let headerPosition = 0;
-    let preventOverflow = this.wot.getSetting('preventOverflow');
+    overlayRoot.style.top = '';
 
-    if (this.trimmingContainer === window && (!preventOverflow || preventOverflow !== 'vertical')) {
+    if (this.wot.wtOverlays.leftOverlay.trimmingContainer === window) {
       let box = this.wot.wtTable.hider.getBoundingClientRect();
-      let top = Math.ceil(box.top);
-      let left = Math.ceil(box.left);
       let bottom = Math.ceil(box.bottom);
       let finalLeft;
-      let finalTop;
+      let finalBottom;
+      let bodyHeight = document.body.offsetHeight;
 
       finalLeft = this.wot.wtTable.hider.style.left;
       finalLeft = finalLeft === '' ? 0 : finalLeft;
 
-      if (top < 0 && (bottom - overlayRoot.offsetHeight) > 0) {
-        finalTop = -top;
+      if (bottom > bodyHeight) {
+        finalBottom = (bottom - bodyHeight);
       } else {
-        finalTop = 0;
+        finalBottom = 0;
       }
+      headerPosition = finalBottom;
+      finalBottom += 'px';
 
-      if (finalTop > 0 && !this.fixed) {
-        overlayRoot.style.position = 'fixed';
-        overlayRoot.style.left = 'auto';
-        overlayRoot.style.width = '100%';
-        this.fixed = true;
-        this.absolute = false;
-
-      } else if (finalTop <= 0 && !this.absolute) {
-        overlayRoot.style.position = 'absolute';
-        overlayRoot.style.left = 0;
-        overlayRoot.style.width = 'auto';
-        this.fixed = false;
-        this.absolute = true;
-      }
-
-      if (this.fixed) {
-        overlayRoot.style.left = left <= 0 ? 0 : 'auto';
-      }
-
-      headerPosition = finalTop;
+      overlayRoot.style.top = '';
+      overlayRoot.style.left = finalLeft;
+      overlayRoot.style.bottom = finalBottom;
 
     } else {
       headerPosition = this.getScrollPosition();
       resetCssTransform(overlayRoot);
+      this.repositionOverlay();
     }
-
     this.adjustHeaderBordersPosition(headerPosition);
-
-    this.adjustElementsSize();
   }
 
   /**
@@ -113,7 +110,7 @@ class TopOverlay extends Overlay {
    * Triggers onScroll hook callback
    */
   onScroll() {
-    this.wot.getSetting('onScrollHorizontally');
+    this.wot.getSetting('onScrollVertically');
   }
 
   /**
@@ -163,24 +160,19 @@ class TopOverlay extends Overlay {
     let scrollbarWidth = masterHolder.clientWidth === masterHolder.offsetWidth ? 0 : getScrollbarWidth();
     let overlayRoot = this.clone.wtTable.holder.parentNode;
     let overlayRootStyle = overlayRoot.style;
-    let preventOverflow = this.wot.getSetting('preventOverflow');
     let tableHeight;
 
-    if (this.trimmingContainer !== window || preventOverflow === 'horizontal') {
-      let width = this.wot.wtViewport.getWorkspaceWidth() - scrollbarWidth;
-
-      width = Math.min(width, innerWidth(this.wot.wtTable.wtRootElement));
-
-      overlayRootStyle.width = `${width}px`;
+    if (this.trimmingContainer === window) {
+      overlayRootStyle.width = '';
 
     } else {
-      overlayRootStyle.width = overlayRootStyle.position === 'fixed' ? '100%' : '';
+      overlayRootStyle.width = this.wot.wtViewport.getWorkspaceWidth() - scrollbarWidth + 'px';
     }
 
     this.clone.wtTable.holder.style.width = overlayRootStyle.width;
 
     tableHeight = outerHeight(this.clone.wtTable.TABLE);
-    overlayRootStyle.height = `${tableHeight === 0 ? tableHeight : tableHeight + 4}px`;
+    overlayRootStyle.height = (tableHeight === 0 ? tableHeight : tableHeight) + 'px';
   }
 
   /**
@@ -195,7 +187,7 @@ class TopOverlay extends Overlay {
     if (scrollbarWidth === 0) {
       scrollbarWidth = 30;
     }
-    this.clone.wtTable.holder.style.height = `${parseInt(this.clone.wtTable.holder.parentNode.style.height, 10) + scrollbarWidth}px`;
+    this.clone.wtTable.holder.style.height = parseInt(this.clone.wtTable.holder.parentNode.style.height, 10) + scrollbarWidth + 'px';
   }
 
   /**
@@ -208,7 +200,7 @@ class TopOverlay extends Overlay {
       this.adjustElementsSize();
     }
     if (typeof this.wot.wtViewport.rowsRenderCalculator.startPosition === 'number') {
-      this.spreader.style.top = `${this.wot.wtViewport.rowsRenderCalculator.startPosition}px`;
+      this.spreader.style.top = this.wot.wtViewport.rowsRenderCalculator.startPosition + 'px';
 
     } else if (total === 0) {
       // can happen if there are 0 rows
@@ -228,12 +220,12 @@ class TopOverlay extends Overlay {
    * Synchronize calculated left position to an element
    */
   syncOverlayOffset() {
-    // if (typeof this.wot.wtViewport.columnsRenderCalculator.startPosition === 'number') {
-    //   this.clone.wtTable.spreader.style.left = `${this.wot.wtViewport.columnsRenderCalculator.startPosition}px`;
+    if (typeof this.wot.wtViewport.columnsRenderCalculator.startPosition === 'number') {
+      this.clone.wtTable.spreader.style.left = this.wot.wtViewport.columnsRenderCalculator.startPosition + 'px';
 
-    // } else {
-    //   this.clone.wtTable.spreader.style.left = '';
-    // }
+    } else {
+      this.clone.wtTable.spreader.style.left = '';
+    }
   }
 
   /**
@@ -253,17 +245,13 @@ class TopOverlay extends Overlay {
     }
 
     if (bottomEdge) {
-      let fixedRowsBottom = this.wot.getSetting('fixedRowsBottom');
-      let fixedRowsTop = this.wot.getSetting('fixedRowsTop');
-      let totalRows = this.wot.getSetting('totalRows');
-
       newY += this.sumCellSizes(0, sourceRow + 1);
-      newY -= this.wot.wtViewport.getViewportHeight() - this.sumCellSizes(totalRows - fixedRowsBottom, totalRows);
+      newY -= this.wot.wtViewport.getViewportHeight();
       // Fix 1 pixel offset when cell is selected
       newY += 1;
 
     } else {
-      newY += this.sumCellSizes(this.wot.getSetting('fixedRowsTop'), sourceRow);
+      newY += this.sumCellSizes(this.wot.getSetting('fixedRowsBottom'), sourceRow);
     }
     newY += scrollbarCompensation;
 
@@ -278,10 +266,9 @@ class TopOverlay extends Overlay {
   getTableParentOffset() {
     if (this.mainTableScrollableElement === window) {
       return this.wot.wtTable.holderOffset.top;
-
     }
-    return 0;
 
+    return 0;
   }
 
   /**
@@ -294,82 +281,35 @@ class TopOverlay extends Overlay {
   }
 
   /**
-   * Redraw borders of selection
-   *
-   * @param {WalkontableSelection} selection Selection for redraw
-   */
-  redrawSelectionBorders(selection) {
-    if (selection && selection.cellRange) {
-      const border = selection.getBorder(this.wot);
-      const corners = selection.getCorners();
-
-      border.disappear();
-      border.appear(corners);
-    }
-  }
-
-  /**
-   * Redrawing borders of all selections
-   */
-  redrawAllSelectionsBorders() {
-    const selections = this.wot.selections;
-
-    this.redrawSelectionBorders(selections.getCell());
-
-    arrayEach(selections.getAreas(), (area) => {
-      this.redrawSelectionBorders(area);
-    });
-    this.redrawSelectionBorders(selections.getFill());
-
-    this.wot.wtTable.wot.wtOverlays.leftOverlay.refresh();
-  }
-
-  /**
    * Adds css classes to hide the header border's header (cell-selection border hiding issue)
    *
    * @param {Number} position Header Y position if trimming container is window or scroll top if not
    */
   adjustHeaderBordersPosition(position) {
-    const masterParent = this.wot.wtTable.holder.parentNode;
-    const totalColumns = this.wot.getSetting('totalColumns');
-
-    if (totalColumns) {
-      removeClass(masterParent, 'emptyColumns');
-    } else {
-      addClass(masterParent, 'emptyColumns');
-    }
-
-    if (this.wot.getSetting('fixedRowsTop') === 0 && this.wot.getSetting('columnHeaders').length > 0) {
+    if (this.wot.getSetting('fixedRowsBottom') === 0 && this.wot.getSetting('columnHeaders').length > 0) {
+      let masterParent = this.wot.wtTable.holder.parentNode;
       let previousState = hasClass(masterParent, 'innerBorderTop');
 
-      if (position || this.wot.getSetting('totalRows') === 0) {
+      if (position) {
         addClass(masterParent, 'innerBorderTop');
       } else {
         removeClass(masterParent, 'innerBorderTop');
       }
-
       if (!previousState && position || previousState && !position) {
         this.wot.wtOverlays.adjustElementsSize();
-
-        // cell borders should be positioned once again,
-        // because we added / removed 1px border from table header
-        this.redrawAllSelectionsBorders();
       }
     }
-
     // nasty workaround for double border in the header, TODO: find a pure-css solution
     if (this.wot.getSetting('rowHeaders').length === 0) {
-      let secondHeaderCell = this.clone.wtTable.THEAD.querySelectorAll('th:nth-of-type(2)');
+      let secondHeaderCell = this.clone.wtTable.THEAD.querySelector('th:nth-of-type(2)');
 
       if (secondHeaderCell) {
-        for (let i = 0; i < secondHeaderCell.length; i++) {
-          secondHeaderCell[i].style['border-left-width'] = 0;
-        }
+        secondHeaderCell.style['border-left-width'] = 0;
       }
     }
   }
 }
 
-Overlay.registerOverlay(Overlay.CLONE_TOP, TopOverlay);
+Overlay.registerOverlay(Overlay.CLONE_BOTTOM, BottomOverlay);
 
-export default TopOverlay;
+export default BottomOverlay;
